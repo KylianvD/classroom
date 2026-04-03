@@ -525,6 +525,7 @@ class Classroom:
                 try:
                     file.write("layout")
                     for i in range(0, classroom.rowframe.grid_size()[1]):
+                        file.write("\n")
                         row = classroom.rowframe.grid_slaves(column=0, row=i)[0]
                         first = True
                         for i in range(0, row.grid_size()[0]):
