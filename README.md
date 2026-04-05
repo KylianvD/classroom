@@ -10,8 +10,8 @@ To start editing a layout, start by adding a row. You can then use the select-bu
 Table names can be shuffled using that button. Locked tables will not partake in this shuffling and keep their text. The flip button flips the classroom up-down.
 
 ### Hotkeys
-Middle-mouse button: lock a table
-Right-mouse button: swap the name of this table with the name of the focussed table
+* Middle-mouse button: lock a table
+* Right-mouse button: swap the name of this table with the name of the focussed table
 
 ### File managing
 Layouts can be exported and imported using the dropdown menu. They use a .txt file format.
