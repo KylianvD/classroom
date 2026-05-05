@@ -8,7 +8,9 @@ from math import floor
 from PIL import Image, ImageGrab, ImageTk
 import ctypes
 
-ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(u"KylianvD.classroom.1.0.0")
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(u"KylianvD.classroom.1.1.0")
+
+# Convert to .exe: "pyinstaller --icon=teaching.ico --noconsole classroom.py"
 
 # Part of the patch for grid_size
 class GridMixin(ttk.Widget):
@@ -56,6 +58,10 @@ class Table(ttk.Label, GridMixin):
     # Apply regular styling
     def unfocus(self):
         self.color("antiquewhite1")
+
+    # Apply highlight styling
+    def highlight(self):
+        self.color("gold1")
 
     # Switch lock-state
     def lock(self):
@@ -291,8 +297,14 @@ class Classroom:
             random.shuffle(names)
             for t in self.tables:
                 t.set(names.pop())
-        else:
-            print("No tables to randomize.")
+
+    # Select a random non-locked table to focus and highlight
+    def randomTable(self):
+        if len(self.tables) != 0:
+            table = random.choice(list(self.tables))
+            if self.focused != table:
+                self.focus(table)
+            table.highlight()
 
     # Delete the passed or focussed row and all its contents
     def delRow(self, row=None):
@@ -388,6 +400,14 @@ class Classroom:
         if self.ImageManager.save(img):
             messagebox.showinfo("Success!", "The image has been saved.")
 
+    # Clear the layout
+    def clear(self, force=False):
+        if not force:
+            force = messagebox.askokcancel("Are you sure?", "Clearing is irreversible. Do you want to continue?")
+        if force:
+            while self.rowframe.grid_size()[1] > 0:
+                self.delRow(self.rowframe.grid_slaves()[0])
+
     # Set up the classroom
     def __init__(self, root):
         self.focused = None
@@ -427,8 +447,10 @@ class Classroom:
         Dropdown(menuframe, state="readonly", values=["File management...", "Open layout", "Open names", "Export layout", "Export names"],
                          callbacks=[None, lambda: self.FileManager.importLayout(self), lambda: self.FileManager.importNames(self), lambda: self.FileManager.exportLayout(self), lambda: self.FileManager.exportNames(self)]
                  ).grid(column=menuframe.grid_size()[0], row=0, sticky=E)
-        ttk.Button(menuframe, text="Exit", command=root.destroy).grid(column=menuframe.grid_size()[0], row=0, sticky=E, padx=(20, 0))
+        ttk.Button(menuframe, text="Random Table", command=self.randomTable).grid(column=menuframe.grid_size()[0], row=0, sticky=E)
+        ttk.Button(menuframe, text="Clear", command=self.clear).grid(column=menuframe.grid_size()[0], row=0, sticky=E, padx=(20, 0))
         menuframe.columnconfigure(menuframe.grid_size()[0]-1, weight=1)
+        ttk.Button(menuframe, text="Exit", command=root.destroy).grid(column=menuframe.grid_size()[0], row=0, sticky=E, padx=(20, 0))
         
         ttk.Button(self.tooltframe, text="Lock", command=self.lock).grid(column=self.tooltframe.grid_size()[0], row=0)
         ttk.Button(self.tooltframe, text="Fontsize +", command=self.fontUp).grid(column=self.tooltframe.grid_size()[0], row=0)
@@ -451,8 +473,7 @@ class Classroom:
             file = filedialog.askopenfile(filetypes=(["text", "txt"], ["*", "*"]))
             if file != None:
                 try:
-                    while classroom.rowframe.grid_size()[1] > 0:
-                        classroom.delRow(classroom.rowframe.grid_slaves()[0])
+                    classroom.clear(force=True)
                     row = classroom.addRow()
                     while True:
                         match file.read(1):
@@ -475,6 +496,10 @@ class Classroom:
                     option = file.readline().strip()
                     match option:
                         case "layout":
+                            warned = False
+                            if classroom.rowframe.grid_size()[1] == 0:
+                                warned = True
+                                messagebox.showwarning("Warning", "Cannot import names to empty layout.")
                             for i in range(0, classroom.rowframe.grid_size()[1]):
                                 row = classroom.rowframe.grid_slaves(column=0, row=i)[0]
                                 tables = []
@@ -485,7 +510,9 @@ class Classroom:
                                 names = file.readline().strip().split(";")
                                 if len(tables) != len(names):
                                     if len(names) != 1 or names[0] != "":
-                                        print("Layout does not fit. Names may be lost.")
+                                        if not warned:
+                                            warned = True
+                                            messagebox.showwarning("Warning", "Layout does not fit. Names may be lost.")
                                 for j in range(0, min(len(tables), len(names))):
                                     if names[j].strip().startswith("#"):
                                         classroom.lock(tables[j])
@@ -502,7 +529,7 @@ class Classroom:
                                 while len(tables) > 0 and len(names) > 0:
                                     tables.pop().set(names.pop().strip())
                             if len(names) != 0:
-                                print("Could not fit all names. Names are lost.")
+                                messagebox.showwarning("Warning", "Could not fit all names. Names are lost.")
                 finally:
                     file.close()
 
@@ -566,7 +593,7 @@ root.title("Classroom")
 root.state('zoomed')
 
 try:
-    icon = Image.open("teaching.ico")
+    icon = Image.open("_internal/teaching.ico")
     icon = ImageTk.PhotoImage(icon)
     root.iconphoto(True, icon)
 except FileNotFoundError:
