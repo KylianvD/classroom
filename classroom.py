@@ -7,10 +7,12 @@ import random
 from math import floor
 from PIL import Image, ImageGrab, ImageTk
 import ctypes
+import os
+import sys
 
-ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(u"KylianvD.classroom.1.1.0")
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(u"KylianvD.classroom.1.1.1")
 
-# Convert to .exe: "pyinstaller --icon=teaching.ico --noconsole classroom.py"
+# Convert to .exe: "pyinstaller --icon=teaching.ico --noconsole --add-data teaching.ico:. --onefile classroom.py"
 
 # Part of the patch for grid_size
 class GridMixin(ttk.Widget):
@@ -592,8 +594,14 @@ Classroom(root)
 root.title("Classroom")
 root.state('zoomed')
 
+
+def get_data_file_path(filename):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, filename)
+    return filename
+
 try:
-    icon = Image.open("_internal/teaching.ico")
+    icon = Image.open(get_data_file_path("teaching.ico"))
     icon = ImageTk.PhotoImage(icon)
     root.iconphoto(True, icon)
 except FileNotFoundError:
